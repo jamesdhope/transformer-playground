@@ -3,6 +3,7 @@ import torch
 import warnings
 from torchtext.data.utils import get_tokenizer
 from transformer import EncoderDecoderTransformer
+import torch.nn.functional as F
 
 # Suppress specific torchtext deprecation warning
 warnings.filterwarnings("ignore", message="torchtext is deprecated and will be removed in a future release")
@@ -11,7 +12,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Model parameters
 ntokens = 66058  # size of vocabulary
-emsize = 400  # embedding dimension
+emsize = 200  # embedding dimension
 d_hid = 200  # dimension of the feedforward network model in ``nn.TransformerEncoder``
 nlayers = 2  # number of ``nn.TransformerEncoderLayer`` in ``nn.TransformerEncoder``
 nhead = 2  # number of heads in ``nn.MultiheadAttention``
@@ -59,41 +60,45 @@ print("Indexed input:", indexed_input)
 # Convert indices to tensor
 input_tensor = torch.tensor(indexed_input).unsqueeze(1).to(device)  # Add batch dimension
 
-# Generate target sequence step-by-step
-max_len = 100  # Maximum length of the generated sequence
-# Initialize the target sequence with the start-of-sequence token
-import torch
-import torch.nn.functional as F
-
-# Temperature for temperature scaling (adjust as needed)
-temperature = 0.7  # Adjust this value to control the diversity of generated samples
-
-# Top-k value for top-k sampling (adjust as needed)
-top_k = 10  # Adjust this value to control the diversity of generated samples
-
 # Initialize the target sequence with the start-of-sequence token
 tgt_start_token_id = vocab['<sos>']  # Start-of-sequence token ID (replace '<sos>' with your actual SOS token)
 tgt_indices = [tgt_start_token_id]
 output_tokens = []
 
+# Temperature for temperature scaling (adjust as needed)
+temperature = 1  # Adjust this value to control the diversity of generated samples
+
+# Top-k value for top-k sampling (adjust as needed)
+top_k = 20  # Adjust this value to control the diversity of generated samples
+
+max_len = 10
+
 with torch.no_grad():
     for _ in range(max_len):
         tgt_tensor = torch.tensor(tgt_indices).unsqueeze(1).to(device)  # Add batch dimension
 
+        # Calculate the sequence length
+        seq_length = tgt_tensor.size(0)
+
+        # Create the target mask
+        tgt_mask = torch.triu(torch.ones(seq_length, seq_length)).transpose(0, 1).type_as(tgt_tensor)
+        tgt_mask = (tgt_mask == 0).unsqueeze(0)
+
+        # Create source mask (set to None for the sake of this example)
+        src_mask = None
+
         # Forward pass
-        output = model(input_tensor, tgt_tensor)
+        output = model(input_tensor, tgt_tensor, src_mask)
 
         # Get the token probabilities using temperature scaling
         token_probs = F.softmax(output[-1, :, :] / temperature, dim=1)
+        #print("Token Probabilities:", token_probs)
 
-                # Apply top-k sampling to get the candidate tokens
-        _, topk_indices = token_probs.topk(top_k, dim=1)
-
-        # Convert topk_indices to float tensor
-        topk_probs = topk_indices.to(torch.float)
+        # Apply top-k sampling to get the candidate tokens
+        topk_probs, topk_indices = token_probs.topk(top_k, dim=1)
 
         # Sample from the top-k indices
-        next_token_id = torch.multinomial(F.softmax(topk_probs, dim=-1), 1).item()
+        next_token_id = topk_indices[0, torch.multinomial(topk_probs[0], 1).item()].item()
 
         # Append the generated token to the target sequence
         tgt_indices.append(next_token_id)
