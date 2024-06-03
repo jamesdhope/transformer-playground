@@ -114,8 +114,8 @@ def get_batch(source: Tensor, i: int) -> Tuple[Tensor, Tensor]:
     # shifts one sequence ahead
     seq_len = min(bptt, len(source) - 1 - i)
     data = source[i:i+seq_len]
-    target = torch.full_like(data,0)
-    target = source[i+1:i+1+seq_len] #.reshape(-1)
+    target = torch.full_like(data,0) # target is padded to same length as source which means we no longer have to reshape it later on.
+    target = source[i+1:i+1+seq_len] 
     return data, target
 
 ###########################################################
@@ -146,33 +146,6 @@ def train(model: nn.Module) -> None:
     num_batches = len(train_data) // bptt
     for batch, i in enumerate(range(0, train_data.size(0) - 1, bptt)):
         src, tgt = get_batch(train_data, i)
-
-        #if debug: print(src)
-        #if debug: print(tgt)
-
-        # Print source and target sequences to verify alignment
-        #if debug: print(f"Source (input) sequence at batch {batch}:\n{src}")
-        #if debug: print(f"Target (output) sequence at batch {batch}:\n{tgt}")
-
-         # Pad src if necessary
-        #if src.size(0) % bptt != 0:
-        #    pad_size = bptt - (src.size(0) % bptt)
-            #print(f"padding src {pad_size}")
-        #    src = torch.cat([src, src.new_zeros(pad_size, src.size(1))], dim=0)
-        
-        # Pad tgt if necessary
-        #if tgt.size(0) % bptt != 0:
-        #    pad_size = bptt - (tgt.size(0) % bptt)
-            #print(f"padding tgt {pad_size}")
-        #    tgt = torch.cat([tgt, tgt.new_zeros(pad_size)], dim=0)
-
-        #if debug: print("Before reshaping - src size:", src.size(), "tgt size:", tgt.size())   
-
-        # Reshape source and target tensors
-        #src = src.view(-1, bptt)  # Flatten the source tensor
-        #tgt = tgt.view(-1, bptt)  # Flatten the target tensor
-
-        #if debug: print("After reshaping - src size:", src.size(), "tgt size:", tgt.size())   
 
         # Forward pass
         output = model(src, tgt)
@@ -208,20 +181,7 @@ def evaluate(model: nn.Module, eval_data: Tensor) -> float:
     with torch.no_grad():
         for i in range(0, eval_data.size(0) - 1, bptt):
             src, tgt = get_batch(eval_data, i)
-              # Pad src if necessary
-            #if src.size(0) % bptt != 0:
-            #    pad_size = bptt - (src.size(0) % bptt)
-            #    src = torch.cat([src, src.new_zeros(pad_size, src.size(1))], dim=0)
             
-            # Pad tgt if necessary
-            #if tgt.size(0) % bptt != 0:
-            #    pad_size = bptt - (tgt.size(0) % bptt)
-            #    tgt = torch.cat([tgt, tgt.new_zeros(pad_size)], dim=0)
-
-            # Reshape source and target tensors
-            #src = src.view(-1, bptt)  # Flatten the source tensor
-            #tgt = tgt.view(-1, bptt)  # Flatten the target tensor
-
             output = model(src, tgt)  # Pass both source and target sequences
             output_flat = output.view(-1, ntokens)
             tgt_flat = tgt.contiguous().view(-1)
