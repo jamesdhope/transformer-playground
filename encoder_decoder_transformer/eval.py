@@ -4,6 +4,7 @@ import warnings
 from torchtext.data.utils import get_tokenizer
 from transformer import EncoderDecoderTransformer
 import torch.nn.functional as F
+from torch.nn import TransformerEncoder, TransformerEncoderLayer
 
 # Suppress specific torchtext deprecation warning
 warnings.filterwarnings("ignore", message="torchtext is deprecated and will be removed in a future release")
@@ -66,10 +67,10 @@ tgt_indices = [tgt_start_token_id]
 output_tokens = []
 
 # Temperature for temperature scaling (adjust as needed)
-temperature = 1  # Adjust this value to control the diversity of generated samples
+temperature = 1.0  # Adjust this value to control the diversity of generated samples
 
 # Top-k value for top-k sampling (adjust as needed)
-top_k = 20  # Adjust this value to control the diversity of generated samples
+top_k = 5  # Adjust this value to control the diversity of generated samples
 
 max_len = 10
 
@@ -77,28 +78,21 @@ with torch.no_grad():
     for _ in range(max_len):
         tgt_tensor = torch.tensor(tgt_indices).unsqueeze(1).to(device)  # Add batch dimension
 
-        # Calculate the sequence length
-        seq_length = tgt_tensor.size(0)
-
-        # Create the target mask
-        tgt_mask = torch.triu(torch.ones(seq_length, seq_length)).transpose(0, 1).type_as(tgt_tensor)
-        tgt_mask = (tgt_mask == 0).unsqueeze(0)
-
-        # Create source mask (set to None for the sake of this example)
+        tgt_mask = torch.nn.Transformer.generate_square_subsequent_mask(tgt_tensor.size(0)).to(device)
+        
         src_mask = None
-
+        
         # Forward pass
-        output = model(input_tensor, tgt_tensor, src_mask)
+        output = model(input_tensor, tgt_tensor, src_mask, tgt_mask)
 
         # Get the token probabilities using temperature scaling
-        token_probs = F.softmax(output[-1, :, :] / temperature, dim=1)
-        #print("Token Probabilities:", token_probs)
+        token_probs = F.softmax(output[-1, 0, :] / temperature, dim=-1)
 
         # Apply top-k sampling to get the candidate tokens
-        topk_probs, topk_indices = token_probs.topk(top_k, dim=1)
+        topk_probs, topk_indices = token_probs.topk(top_k, dim=-1)
 
         # Sample from the top-k indices
-        next_token_id = topk_indices[0, torch.multinomial(topk_probs[0], 1).item()].item()
+        next_token_id = topk_indices[torch.multinomial(topk_probs, 1).item()].item()
 
         # Append the generated token to the target sequence
         tgt_indices.append(next_token_id)

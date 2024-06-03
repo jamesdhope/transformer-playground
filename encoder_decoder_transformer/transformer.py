@@ -85,7 +85,6 @@ class TransformerDecoderModel(nn.Module):
         output = self.linear(output)
         return output
 
-
 class PositionalEncoding(nn.Module):
 
     def __init__(self, d_model: int, dropout: float = 0.1, max_len: int = 5000):

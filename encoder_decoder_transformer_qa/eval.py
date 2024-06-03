@@ -11,7 +11,7 @@ warnings.filterwarnings("ignore", message="torchtext is deprecated and will be r
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Model parameters
-ntokens = 66058  # size of vocabulary
+ntokens = 99177  # size of vocabulary
 emsize = 200  # embedding dimension
 d_hid = 200  # dimension of the feedforward network model in ``nn.TransformerEncoder``
 nlayers = 2  # number of ``nn.TransformerEncoderLayer`` in ``nn.TransformerEncoder``
@@ -38,7 +38,7 @@ model.eval()
 
 # Tokenize input text
 tokenizer = get_tokenizer('basic_english')
-input_text = "the information is part of the"
+input_text = "what is the best way to skin a cat?"
 tokenized_input = tokenizer(input_text)
 
 # Ensure tokenized_input is a list of tokens
