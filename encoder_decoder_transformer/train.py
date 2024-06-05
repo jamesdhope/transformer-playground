@@ -133,7 +133,7 @@ dropout = 0.2  # dropout probability
 model = EncoderDecoderTransformer(src_vocab_size=ntokens, tgt_vocab_size=ntokens, d_model=emsize, nhead=nhead, d_hid=d_hid, enc_layers=nlayers,dec_layers=nlayers, dropout=dropout).to(device)
 
 criterion = nn.CrossEntropyLoss()
-lr = 5.0  # learning rate
+lr = 0.05  # learning rate
 optimizer = torch.optim.SGD(model.parameters(), lr=lr)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 1.0, gamma=0.95)
 
