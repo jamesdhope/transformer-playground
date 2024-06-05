@@ -152,7 +152,11 @@ for epoch in range(1, epochs + 1):
         best_model = model
 
     scheduler.step()
-
+    
+torch.save({
+        'model_state_dict': best_model.state_dict(),
+        'vocab': vocab
+    }, 'model_checkpoint.pth')
 
 test_loss = evaluate(best_model, test_data)
 print('=' * 89)

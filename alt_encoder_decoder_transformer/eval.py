@@ -2,7 +2,7 @@ import math
 import torch
 import warnings
 from torchtext.data.utils import get_tokenizer
-from transformer import EncoderDecoderTransformer
+from transformer import TransformerModel
 import torch.nn.functional as F
 from torch.nn import TransformerEncoder, TransformerEncoderLayer
 
@@ -18,14 +18,14 @@ d_hid = 200  # dimension of the feedforward network model in ``nn.TransformerEnc
 nlayers = 2  # number of ``nn.TransformerEncoderLayer`` in ``nn.TransformerEncoder``
 nhead = 2  # number of heads in ``nn.MultiheadAttention``
 dropout = 0.2  # dropout probability
-model = EncoderDecoderTransformer(
-    src_vocab_size=ntokens,
-    tgt_vocab_size=ntokens,
-    d_model=emsize,
+model = TransformerModel(
+    #src_vocab_size=ntokens,
+    #tgt_vocab_size=ntokens,
+    ntoken=ntokens,
+    ninp=emsize,
     nhead=nhead,
-    d_hid=d_hid,
-    enc_layers=nlayers,
-    dec_layers=nlayers,
+    nhid=d_hid,
+    nlayers=nlayers,
     dropout=dropout
 ).to(device)
 
@@ -72,22 +72,22 @@ temperature = 1.5  # Adjust this value to control the diversity of generated sam
 # Top-k value for top-k sampling (adjust as needed)
 top_k = 10  # Adjust this value to control the diversity of generated samples
 
-max_len = 10
+max_len = 50
 
 with torch.no_grad():
     for _ in range(max_len):
-        tgt_tensor = torch.tensor(tgt_indices).unsqueeze(1).to(device)  # Add batch dimension
-        print("target_tensor_size",tgt_tensor.shape)
+        #tgt_tensor = torch.tensor(tgt_indices).unsqueeze(1).to(device)  # Add batch dimension
+        #print("target_tensor_size",tgt_tensor.shape)
 
-        tgt_mask = torch.nn.Transformer.generate_square_subsequent_mask(tgt_tensor.size(0)).to(device)
-        print("tgt_mask",tgt_mask)
+        #tgt_mask = torch.nn.Transformer.generate_square_subsequent_mask(tgt_tensor.size(0)).to(device)
+        #print("tgt_mask",tgt_mask)
 
         src_mask = None
         
-        print("input_tensor",input_tensor)
+        print("input_tensor",input_tensor.shape)
 
         # Forward pass
-        output = model(input_tensor, tgt_tensor, src_mask, tgt_mask)
+        output = model(input_tensor, src_mask)
 
         #print("output",output)
         #print("output shape", output.shape)
@@ -97,9 +97,6 @@ with torch.no_grad():
 
         # Apply top-k sampling to get the candidate tokens
         topk_probs, topk_indices = token_probs.topk(top_k, dim=-1)
-
-        print("top indices", topk_indices)
-        print("top probs", topk_probs)
 
         # Sample from the top-k indices
         next_token_id = topk_indices[torch.multinomial(topk_probs, 1).item()].item()
