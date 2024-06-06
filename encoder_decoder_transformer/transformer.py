@@ -55,7 +55,6 @@ class TransformerEncoderModel(nn.Module):
         output = self.transformer_encoder(src, src_mask)
         return output
 
-
 class TransformerDecoderModel(nn.Module):
 
     def __init__(self, ntoken: int, d_model: int, nhead: int, d_hid: int,
@@ -64,7 +63,7 @@ class TransformerDecoderModel(nn.Module):
         self.pos_decoder = PositionalEncoding(d_model, dropout)
         decoder_layers = nn.TransformerDecoderLayer(d_model, nhead, d_hid, dropout)
         self.transformer_decoder = nn.TransformerDecoder(decoder_layers, nlayers)
-        self.embedding = nn.Embedding(ntoken, d_model)
+        self.embedding = nn.Embedding(ntoken, d_model, padding_idx=0)
         self.d_model = d_model
         self.linear = nn.Linear(d_model, ntoken)
 
@@ -76,14 +75,32 @@ class TransformerDecoderModel(nn.Module):
         self.linear.bias.data.zero_()
         self.linear.weight.data.uniform_(-initrange, initrange)
 
-    def forward(self, tgt: Tensor, memory: Tensor, src_mask: Tensor = None, tgt_mask: Tensor = None) -> Tensor:
-        tgt = self.embedding(tgt) * math.sqrt(self.d_model)
+    def forward(self, tgt: Tensor = None, memory: Tensor = None, src_mask: Tensor = None, tgt_mask: Tensor = None) -> Tensor:
+        if tgt is None:
+            # Inference mode: Generate initial token and mask
+            batch_size = memory.size(1)
+            tgt = torch.full((1, batch_size), self.embedding.padding_idx, dtype=torch.long, device=torch.device(memory.device))
+            tgt_mask = nn.Transformer.generate_square_subsequent_mask(1).to(torch.device(memory.device))
+            #print("tgt_mask",tgt_mask)
+        else:
+            tgt = self.embedding(tgt) * math.sqrt(self.d_model)
+            tgt = self.pos_decoder(tgt)
+            if tgt_mask is None:
+                tgt_mask = nn.Transformer.generate_square_subsequent_mask(len(tgt)).to(tgt.device)
+
         tgt = self.pos_decoder(tgt)
-        if tgt_mask is None:
-            tgt_mask = nn.Transformer.generate_square_subsequent_mask(len(tgt)).to(tgt.device)
         output = self.transformer_decoder(tgt, memory, tgt_mask, src_mask)
         output = self.linear(output)
         return output
+    
+    #def forward(self, tgt: Tensor, memory: Tensor, src_mask: Tensor = None, tgt_mask: Tensor = None) -> Tensor:
+    #    tgt = self.embedding(tgt) * math.sqrt(self.d_model)
+    #    tgt = self.pos_decoder(tgt)
+    #    if tgt_mask is None:
+    #        tgt_mask = nn.Transformer.generate_square_subsequent_mask(len(tgt)).to(tgt.device)
+    #    output = self.transformer_decoder(tgt, memory, tgt_mask, src_mask)
+    #    output = self.linear(output)
+    #    return output
 
 class PositionalEncoding(nn.Module):
 

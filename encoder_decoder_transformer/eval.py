@@ -67,30 +67,27 @@ tgt_indices = [tgt_start_token_id]
 output_tokens = []
 
 # Temperature for temperature scaling (adjust as needed)
-temperature = 1.5  # Adjust this value to control the diversity of generated samples
+temperature = 0.8  # Adjust this value to control the diversity of generated samples
 
 # Top-k value for top-k sampling (adjust as needed)
-top_k = 10  # Adjust this value to control the diversity of generated samples
+top_k = 20  # Adjust this value to control the diversity of generated samples
 
-max_len = 10
+max_len = 40
 
 with torch.no_grad():
     for _ in range(max_len):
-        tgt_tensor = torch.tensor(tgt_indices).unsqueeze(1).to(device)  # Add batch dimension
-        print("target_tensor_size",tgt_tensor.shape)
+        #tgt_tensor = torch.tensor(tgt_indices).unsqueeze(1).to(device)  # Add batch dimension
+        #print("target_tensor_size",tgt_tensor.shape)
 
-        tgt_mask = torch.nn.Transformer.generate_square_subsequent_mask(tgt_tensor.size(0)).to(device)
-        print("tgt_mask",tgt_mask)
+        #tgt_mask = torch.nn.Transformer.generate_square_subsequent_mask(tgt_tensor.size(0)).to(device)
+        #print("tgt_mask",tgt_mask)
 
         src_mask = None
+        tgt_mask = None
+        tgt_tensor = None
         
-        print("input_tensor",input_tensor)
-
         # Forward pass
         output = model(input_tensor, tgt_tensor, src_mask, tgt_mask)
-
-        #print("output",output)
-        #print("output shape", output.shape)
 
         # Get the token probabilities using temperature scaling
         token_probs = F.softmax(output[-1, 0, :] / temperature, dim=-1)
@@ -98,13 +95,8 @@ with torch.no_grad():
         # Apply top-k sampling to get the candidate tokens
         topk_probs, topk_indices = token_probs.topk(top_k, dim=-1)
 
-        print("top indices", topk_indices)
-        print("top probs", topk_probs)
-
         # Sample from the top-k indices
         next_token_id = topk_indices[torch.multinomial(topk_probs, 1).item()].item()
-
-        print(next_token_id)
 
         # Append the generated token to the target sequence
         tgt_indices.append(next_token_id)
@@ -118,6 +110,7 @@ with torch.no_grad():
         if next_token_id == eos_token_id:
             break
 
+
 # Convert generated token indices back to tokens
 reverse_vocab = {idx: token for token, idx in vocab.get_stoi().items()}  # Get index-to-string mapping
 generated_tokens = [reverse_vocab.get(idx, '<unk>') for idx in output_tokens]
@@ -125,3 +118,31 @@ generated_tokens = [reverse_vocab.get(idx, '<unk>') for idx in output_tokens]
 # Join tokens to form the final generated text
 generated_text = ' '.join(generated_tokens)
 print("Generated Text:", generated_text)
+
+
+
+
+
+
+#def decode_output_tensor2token(output):
+#    max_values, max_indices = torch.max(output,dim=1)
+#    return max_indices
+
+#def decode_tokens(tokens):
+#    # Get the list of tokens in the vocab
+#    itos = vocab.get_itos()
+
+#    # Convert list of indices to list of strings
+#    words = [itos[index] for index in tokens]
+
+#    # join list of strings into a single string
+#    text = ' '.join(words)
+#    return text
+
+#print("output tokens",output_tokens)
+#tokens = decode_output_tensor2token(output_tokens)
+#print(tokens)
+
+#words = decode_tokens(output_tokens)
+
+#print(words)
