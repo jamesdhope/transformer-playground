@@ -189,7 +189,7 @@ def evaluate(model: nn.Module, eval_data: Tensor) -> float:
     return total_loss / (len(eval_data) - 1)
 
 best_val_loss = float('inf')
-epochs = 3
+epochs = 6
 
 with TemporaryDirectory() as tempdir:
     best_model_params_path = os.path.join(tempdir, "best_model_params.pt")
