@@ -84,6 +84,13 @@ with torch.no_grad():
         tgt_mask = torch.triu(torch.ones(seq_length, seq_length)).transpose(0, 1).type_as(tgt_tensor)
         tgt_mask = (tgt_mask == 0).unsqueeze(0)
 
+        print("tgt_tensor",tgt_tensor.shape)
+        print("tgt_mask", tgt_mask.shape)
+
+        input_tensor = torch.tensor(indexed_input).unsqueeze(1).to(device)
+
+        print("input_tensor", input_tensor.shape)
+
         # Create source mask (set to None for the sake of this example)
         src_mask = None
 
@@ -102,6 +109,7 @@ with torch.no_grad():
 
         # Append the generated token to the target sequence
         tgt_indices.append(next_token_id)
+        indexed_input.append(next_token_id)
         output_tokens.append(next_token_id)
 
         # Stop if the end-of-sequence token is generated
